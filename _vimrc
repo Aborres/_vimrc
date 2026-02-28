@@ -82,9 +82,9 @@ func! Install() abort
     call mkdir(s:plugins_path, "p")
   endif
 
-  "call s:InstallPack(s:vim_root, s:vim_rc, s:vimrc_path)
+  call s:InstallPack(s:vim_root, s:vim_rc, s:vimrc_path)
 
-  "call s:InstallPack(s:plugins_path, s:personal_plugins)
+  call s:InstallPack(s:plugins_path, s:personal_plugins)
   call s:InstallPack(s:plugins_path, s:external_plugins)
 
 endfunc
