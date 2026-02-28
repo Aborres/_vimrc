@@ -10,9 +10,9 @@
 "
 " Make sure ssh keys for git and gitlab are setup
 "
-" Move shell to vim's root 
-" Clone this repo with git clone https://github.com/Aborres/_vimrc .
-" Call Install()
+" Copy the contents of this repo into vim's root, only windows needs the binaries
+" ./vim
+" call Install()
 " Restart vim
 
 let s:vim_root     = expand($HOME .. '/.vim')
