@@ -42,7 +42,6 @@ let s:external_plugins = [
       \ "https://github.com/prabirshrestha/async.vim",
       \ "https://github.com/prabirshrestha/asyncomplete.vim",
       \ "https://github.com/prabirshrestha/asyncomplete-lsp.vim",
-      \ "https://github.com/skywind3000/asyncrun.vim",
       \ "https://github.com/rafi/awesome-vim-colorschemes",
       \ "https://github.com/itchyny/lightline.vim",
       \ "https://github.com/prabirshrestha/vim-lsp",
