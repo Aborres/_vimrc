@@ -4,11 +4,11 @@ func! ve#cursor#remove_cursor(txt) abort
 endfunc
 
 func! ve#cursor#clear_text() abort
-  let g:ve_search_txt = g:ve_internal_cursor
+  return g:ve_internal_cursor
 endfunc
 
 func! ve#cursor#move_after(first_half, second_half, first_space=0, second_space=1) abort
-  let l:first_half  = a:first_half
+  let l:first_half  = trim(a:first_half, '', 1)
   let l:first_half .= a:first_space ? ' ' : '' 
   let l:txt  = l:first_half . g:ve_internal_cursor 
   let l:txt .= a:second_space ? ' ' : '' 
@@ -16,11 +16,11 @@ func! ve#cursor#move_after(first_half, second_half, first_space=0, second_space=
   return l:txt
 endfunc
 
-func! ve#cursor#move_front(txt, space=1) abort
+func! ve#cursor#move_front(txt, space=0) abort
   return ve#cursor#move_after('', ve#cursor#remove_cursor(a:txt), 0, a:space)
 endfunc
 
-func! ve#cursor#move_back(txt, space=1) abort
+func! ve#cursor#move_back(txt, space=0) abort
   return ve#cursor#move_after(ve#cursor#remove_cursor(a:txt), '', a:space, 0)
 endfunc
 

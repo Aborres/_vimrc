@@ -20,35 +20,59 @@ func! ve#filter#split_name_path(txt) abort
   return l:pos
 endfunc
 
-func! ve#filter#clear_name(id, key) abort
+func! ve#filter#clear_name(txt) abort
 
-  let l:pos = ve#filter#split_name_path(g:ve_search_txt)
+  let l:pos = ve#filter#split_name_path(a:txt)
   if (l:pos > 0) 
-    let g:ve_search_txt = ve#cursor#move_front(g:ve_search_txt[l:pos - 1:], 0)
+    let l:text = ve#cursor#move_front(trim(a:txt[l:pos - 1:], ' ', 1))
+    let l:text = l:text[0] . ' ' . l:text[1:]
+    return l:text
+  else " the string didn't have a path, only a name so just delete it
+    return ve#cursor#clear_text()
+  endif
+
+  return a:txt
+endfunc
+
+func! s:FilterClearName(id, key) abort
+
+  let l:txt = ve#filter#clear_name(g:ve_search_txt)
+  if (g:ve_search_txt != l:txt) 
+    let g:ve_search_txt = l:txt
     return ve#update#input_text(a:id)
   endif
+
   return 1
 endfunc
 
-func! ve#filter#clear_path_w(text) abort
+func! ve#filter#clear_path_text(text) abort
   let l:new_text = a:text
   let l:pos = ve#filter#split_name_path(l:new_text)
   if (l:pos > 0) 
-    let l:new_text = l:new_text[:l:pos - 1]
+    let l:new_text = trim(l:new_text[:l:pos - 1])
   endif
   return l:new_text
 endfunc
 
-func! ve#filter#clear_path(id, key) abort
+func! ve#filter#clear_path(text) abort
 
-  let l:search_txt = ve#cursor#remove_cursor(g:ve_search_txt)
-  let l:new_text = ve#filter#clear_path_w(l:search_txt)
-  if (l:new_text != l:search_txt)
-    let g:ve_search_txt = ve#cursor#move_back(l:new_text, 0)
+  let l:search_txt = ve#cursor#remove_cursor(a:text)
+  let l:new_text   = ve#filter#clear_path_text(l:search_txt)
+  let l:search_txt = ve#cursor#move_back(l:new_text)
+
+  return l:search_txt
+endfunc
+
+func! s:FilterClearPath(id, key) abort
+
+  let l:txt = ve#filter#clear_path(g:ve_search_txt)
+  if (l:txt != g:ve_search_txt)
+    let g:ve_search_txt = l:txt
     return ve#update#input_text(a:id)
   endif
 
   return 1
+
 endfunc
 
 func! ve#filter#call(id, key) abort
@@ -81,12 +105,12 @@ func! s:GetCurrentlyFocusedFile()
 endfunc
 
 func! s:CursorFront(id) abort
-  let g:ve_search_txt = ve#cursor#move_front(g:ve_search_txt, 0)
+  let g:ve_search_txt = ve#cursor#move_front(g:ve_search_txt)
   return ve#update#screen_body(a:id)
 endfunc
 
 func! s:CursorEnd(id) abort
-  let g:ve_search_txt = ve#cursor#move_back(g:ve_search_txt, 0)
+  let g:ve_search_txt = ve#cursor#move_back(g:ve_search_txt)
   return ve#update#screen_body(a:id)
 endfunc
 
@@ -94,7 +118,7 @@ func! s:FilterUp(id, key) abort
   if (ve#cursor#is_empty_search() || ve#cursor#is_front())
     return 1
   endif
-  let g:ve_search_txt = ve#cursor#move_front(g:ve_search_txt, 0)
+  let g:ve_search_txt = ve#cursor#move_front(g:ve_search_txt)
   return ve#update#screen_body(a:id)
 endfunc
 
@@ -102,7 +126,7 @@ func! s:FilterDown(id, key) abort
   if (ve#cursor#is_empty_search() || ve#cursor#is_back())
     return 1
   endif
-  let g:ve_search_txt = ve#cursor#move_back(g:ve_search_txt, 0)
+  let g:ve_search_txt = ve#cursor#move_back(g:ve_search_txt)
   return ve#update#screen_body(a:id)
 endfunc
 
@@ -156,7 +180,7 @@ func! s:FilterBS(id, key) abort
   
   if (ve#cursor#is_back())
     let l:txt = l:split_s[0]
-    let g:ve_search_txt = ve#cursor#move_back(l:txt[:-2], 0)
+    let g:ve_search_txt = ve#cursor#move_back(l:txt[:-2])
     return ve#update#input_text(a:id)
   endif 
 
@@ -177,7 +201,7 @@ func! s:FilterDel(id, key) abort
 
   if (ve#cursor#is_front())
     let l:txt = l:split_s[0]
-    let g:ve_search_txt = ve#cursor#move_front(l:txt[1:], 0)
+    let g:ve_search_txt = ve#cursor#move_front(l:txt[1:])
     return ve#update#input_text(a:id)
   endif
 
@@ -188,23 +212,30 @@ func! s:FilterDel(id, key) abort
   return ve#update#input_text(a:id)
 endfunc
 
-func! s:FilterExt(id, key) abort
+func! ve#filter#clear_ext(text) abort
 
-  let l:new_text = ve#cursor#remove_cursor(g:ve_search_txt)
-
-  let l:ext_pos =  stridx(l:new_text, '.')
+  let l:clean_text = ve#cursor#remove_cursor(a:text)
+  let l:ext_pos = stridx(l:clean_text, '.')
   if (l:ext_pos > 0) 
 
-    let l:new_text = ve#cursor#move_back(l:new_text[0:l:ext_pos], 0)
+    let l:new_text = ve#cursor#move_back(l:clean_text[0:l:ext_pos])
 
-    let g:ve_search_txt = ve#cursor#remove_cursor(g:ve_search_txt)
-    let l:path_pos = ve#filter#split_name_path(g:ve_search_txt)
+    let l:path_pos = ve#filter#split_name_path(l:clean_text)
     if (l:path_pos > 0)
-      let l:new_text = l:new_text . ' ' . trim(g:ve_search_txt[l:path_pos - 1:])
+      let l:new_text = l:new_text . ' ' . trim(l:clean_text[l:path_pos - 1:], ' ',1)
     endif 
 
-    let g:ve_search_txt = l:new_text
+    return l:new_text
+  endif
 
+  return a:text
+endfunc
+
+func! s:FilterExt(id, key) abort
+
+  let l:text = ve#filter#clear_ext(g:ve_search_txt)
+  if (l:text != g:ve_search_txt)
+    let g:ve_search_txt = l:text
     return ve#update#input_text(a:id)
   endif
 
@@ -217,7 +248,7 @@ func! s:FilterFilter(id, key) abort
 
   if (l:text[1] == ':')
     if ((l:text[0] == 'a') || (l:text[0] == 'f') || (l:text[0] == 'd'))
-      let g:ve_search_txt = ve#cursor#move_front(l:text[2:], 0)
+      let g:ve_search_txt = ve#cursor#move_front(l:text[2:])
       return ve#update#input_text(a:id)
     endif
   endif
@@ -245,7 +276,7 @@ func! s:FilterLastFolder(id, key) abort
 
     let l:path = fnamemodify(l:path, ':h')
 
-    let g:ve_search_txt = ve#cursor#move_back(l:name . l:path, 0)
+    let g:ve_search_txt = ve#cursor#move_back(l:name . l:path)
 
     return ve#update#input_text(a:id)
   endif
@@ -312,16 +343,16 @@ func! s:FilterInput_mode(id, key) abort
     endif
 
     if (a:key == g:ve_clear_c)
-      call ve#cursor#clear_text()
+      let g:ve_search_txt = ve#cursor#clear_text()
       return ve#update#input_text(a:id)
     endif
 
     if (a:key == g:ve_clear_name)
-      return ve#filter#clear_name(a:id, a:key)
+      return s:FilterClearName(a:id, a:key)
     endif
 
     if (a:key == g:ve_clear_path)
-      return ve#filter#clear_path(a:id, a:key)
+      return s:FilterClearPath(a:id, a:key)
     endif
 
     if (a:key == g:ve_clear_ext)
@@ -415,13 +446,13 @@ func! ve#filter#nav_mode(id, key) abort
 
   if (a:key == g:ve_clear_c)
     call s:FromNavToInput(a:id, a:key)
-    call ve#cursor#clear_text()
+    let g:ve_search_txt = ve#cursor#clear_text()
     return ve#update#input_text(a:id)
   endif
 
   if (a:key == g:ve_clear_name)
     call s:FromNavToInput(a:id, a:key)
-    return ve#filter#clear_name(a:id, a:key)
+    return s:FilterClearName(a:id, a:key)
   endif
 
   if (a:key == g:ve_clear_ext)
@@ -436,7 +467,7 @@ func! ve#filter#nav_mode(id, key) abort
 
   if (a:key == g:ve_clear_path)
     call s:FromNavToInput(a:id, a:key)
-    return ve#filter#clear_path(a:id, a:key)
+    return s:FilterClearPath(a:id, a:key)
   endif
 
   if (g:ve_enable_number_jump)

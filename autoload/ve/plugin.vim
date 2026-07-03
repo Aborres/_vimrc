@@ -118,7 +118,7 @@ func! ve#plugin#search(txt) abort
   " Otherwise it might be an already formed query
   let l:search_text = a:txt
   if ((l:search_text[0] == "\\") || (l:search_text[0] == "/"))
-    let l:search_text = ve#cursor#move_front(l:search_text)
+    let l:search_text = ve#cursor#move_front(l:search_text, 1)
   else
   endif
 
@@ -165,7 +165,7 @@ func! s:VEQueryFromPrevSearch(path) abort
 
   if (g:ve_keep_prev_search)
     let l:last_search = ve#cursor#remove_cursor(g:ve_last_search)
-    let l:file_name   = ve#filter#clear_path_w(l:last_search)
+    let l:file_name   = ve#filter#clear_path_text(l:last_search)
     if (l:file_name != g:ve_last_search)
       return ve#cursor#move_after(l:file_name, a:path)
     endif
