@@ -34,10 +34,11 @@ editing your query faster.
 Usage ~
 
 VE(keep_prev_search = 1)
-VE_Path()
+VE_Search(txt)
 VE_SearchFileInPath(file, path)
 VE_SearchInPath(path)
-VE_Search(txt)
+VE_Path()
+VE_Refresh()
 
 ===============================================================================
                                                      *vim-everything-variables*
@@ -47,7 +48,6 @@ Variables ~
   |g:ve_list_size| 
   |g:ve_enable_number_jump|
   |g:ve_jump_shortcuts|
-  |g:ve_resize|
   |g:ve_keep_prev_search|
   |g:ve_use_python3|
   |g:ve_file_results|
@@ -61,17 +61,25 @@ Variables ~
   |g:ve_clear_filter|
   |g:ve_clear_last_folder|
 
-  Icons:~
-  |g:ve_cursor|
-  |g:ve_borders|
+  UIStyle:~
+  |g:ve_style|
+  |g:ve_style.window_w|
+  |g:ve_style.resize|
+  |g:ve_style.cursor|
+  |g:ve_style.cursor.icon|
+  |g:ve_style.cursor.blink|
+  |g:ve_style.opacity|
+  |g:ve_style.notification|
+  |g:ve_style.border|
+  |g:ve_style.border_style|
+  |g:ve_style.scrollbar|
+  |g:ve_style.thumb|
 
-  UI:~
-  |g:ve_fixed_w|
+  Functions:~
   |g:ve_use_alternative_search|
   |g:ve_alternative_search_mode|
   |g:ve_switch_focus|
-
-  Functions:~
+  |g:ve_cache_search|
   |g:ve_explore|
   |g:ve_vexplore|
   |g:ve_hexplore|
@@ -106,13 +114,6 @@ If enabled limits g:ve_list_size to len(g:ve_jump_shortcuts)
                              'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p']
 <
 Shortcut keys to use for quick open from the list of items
-------------------------------------------------------------------------------
-                                                                 *g:ve_resize*
->
-  let g:ve_resize = 1 
-<
-
-Toggles if the popup window should be resizeable with the mouse
 ------------------------------------------------------------------------------
                                                        *g:ve_keep_prev_search*
 >
@@ -193,17 +194,115 @@ Key used to clear filter from the input search, See: *g:ve_file_results*
 <
 Key used to clear last folder from the path in the input search
 ------------------------------------------------------------------------------
-                                                                 *g:ve_cursor*
->
-  let g:ve_cursor = '|' 
-<
-Cursor Icon
-------------------------------------------------------------------------------
-                                                                *g:ve_borders*
+                                                                  *g:ve_style*
 > 
-  let g:ve_borders = ['─', '│', '─', '│', '╭', '╮', '╯', '╰']
+  let g:ve_style = #{
+        \ window_w: 128, 
+        \ resize: 1, 
+        \ cursor: #{ 
+          \ icon: '|',
+          \ blink: 500,
+        \},
+        \ wrap: 0, 
+        \ scrollbar: 0, 
+        \ opacity: 100,
+        \ notification: '',
+        \ border: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
+        \ border_style: ['', '', '', ''],
+        \ scrollbar_style: '',
+        \ thumb: '',
+    \}
+<
+Dictionary of style options for Floating Window.
+See Below for more information about each option.
+For global style of the selected item in the popup window see PopupSelected.
+By default vim-everything uses:
+>
+  hi PopupSelected guifg=#000000 guibg=#ffa500
+<
+------------------------------------------------------------------------------
+                                                         *g:ve_style.window_w*
+>
+  let g:ve_style.g:ve_style.window_w = 128
+<
+If set to any value, the search window will have that size.
+------------------------------------------------------------------------------
+                                                           *g:ve_style.resize*
+>
+  let g:ve_style.g:ve_style.resize = 1
+<
+Toggles if the popup window should be resizeable with the mouse.
+------------------------------------------------------------------------------
+                                                           *g:ve_style.cursor*
+>
+  let g:ve_style.cursor = #{ 
+    \ icon: '|',
+    \ blink: 500,
+  \}
+<
+Dictionary of options for Cursor Styling
+See Below for more information about each option.
+------------------------------------------------------------------------------
+                                                      *g:ve_style.cursor.icon*
+>
+  let g:ve_style.cursor.icon = '|'
+<
+Character to use in the search field for the cursor.
+------------------------------------------------------------------------------
+                                                     *g:ve_style.cursor.blink*
+>
+  let g:ve_style.cursor.blink = 500
+<
+Blinking Speed for cursor in ms
+Use 0 to disable cursor blinking functionality
+------------------------------------------------------------------------------
+                                                             *g:ve_style.wrap*
+>
+  let g:ve_style.wrap = 0
+<
+Wrap Text on Popup Window
+------------------------------------------------------------------------------
+                                                        *g:ve_style.scrollbar*
+>
+  let g:ve_style.scrollbar = 0
+<
+Whether or not to show a scrollbar in Popup Window
+------------------------------------------------------------------------------
+                                                          *g:ve_style.opacity*
+>
+  let g:ve_style.opacity = 100
+<
+Popup opacity
+------------------------------------------------------------------------------
+                                                     *g:ve_style.notification*
+>
+  let g:ve_style.notification = ''
+<
+Custom style to use to replace PopupNotification Style
+------------------------------------------------------------------------------
+                                                           *g:ve_style.border*
+>
+  let g:ve_style.border = ['─', '│', '─', '│', '╭', '╮', '╯', '╰']
 <
 Floating Window Borders
+------------------------------------------------------------------------------
+                                                     *g:ve_style.border_style*
+>
+  let g:ve_style.border_style = ['', '', '', '']
+<
+Custom style for borders to replace PopupBorder Style
+------------------------------------------------------------------------------
+                                                  *g:ve_style.scrollbar_style*
+>
+  let g:ve_style.scrollbar_style = ''
+<
+Custom style for scrollbar to replace PmenuSbar Style
+------------------------------------------------------------------------------
+                                                            *g:ve_style.thumb*
+>
+  let g:ve_style.thumb = ''
+<
+Custom style for scroolbar thumb to replace PmenuSBar Style
 ------------------------------------------------------------------------------
                                                                 *g:ve_fixed_w*
 >
@@ -231,6 +330,13 @@ don't support Everything.
   let g:ve_switch_focus = 1
 <
 Whether to switch to a buffer if the search file is already opened
+------------------------------------------------------------------------------
+                                                           *g:ve_cache_search*
+>
+  let g:ve_cache_search = 1
+<
+Repeated openings of the search window with the same input won't trigger a
+refresh of results (backend won't be queried)
 ------------------------------------------------------------------------------
                                                                 *g:ve_explore*
 >

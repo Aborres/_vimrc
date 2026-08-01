@@ -28,10 +28,16 @@ let g:ve_bottom_offset = 4
 "--UI
 
 let s:ve_initialized = 0 
-let s:ve_popup = 0
+let s:ve_popup = -1
+let s:ve_cache_popup = 1
 
 let s:ve_timer = -1
+
 let s:ve_cursor_state = 1
+
+func! s:IsPopupValid() abort
+  return s:ve_popup != -1
+endfunc
 
 func! ve#plugin#reset() abort
 
@@ -49,8 +55,6 @@ func! ve#plugin#reset() abort
 
   let g:ve_screen_space_idx = 0
   let g:ve_curr_pag         = 0
-
-  let s:ve_popup = 0
 
   let g:ve_search_txt = g:ve_internal_cursor
   let g:ve_py_search_txt = g:ve_internal_cursor
@@ -76,12 +80,22 @@ func! ve#plugin#init() abort
   endif
 endfunc
 
+func! ve#plugin#destroy() abort
+
+  call ve#plugin#reset()
+
+  if (s:IsPopupValid())
+    call popup_close(s:ve_popup)
+    let s:ve_popup = -1
+  endif
+endfunc
+
 func! ve#plugin#search_w(text, from) abort
 
   let g:ve_search_txt = a:text
-  let g:ve_last_search = g:ve_search_txt
 
-  let g:ve_py_search_txt = ve#cursor#remove_cursor(g:ve_search_txt)
+  let g:ve_last_search   = ve#cursor#remove_cursor(g:ve_search_txt)
+  let g:ve_py_search_txt = g:ve_last_search
 
   let g:ve_offset_txt = a:from 
   let g:ve_status = 1
@@ -110,62 +124,103 @@ func! s:Blink(timer) abort
   call ve#update#screen_body(s:ve_popup, s:ve_cursor_state)
 endfunc
 
-func! ve#plugin#search(txt) abort
+func! s:IsBlinkEnabled() abort
+  return g:ve_style.cursor.blink > 0
+endfunc
 
-  call ve#plugin#reset()
+func! ve#plugin#search(txt) abort
 
   " If we are searching with a path insert the cursor at the front to start writing there
   " Otherwise it might be an already formed query
   let l:search_text = a:txt
-  if ((l:search_text[0] == "\\") || (l:search_text[0] == "/"))
-    let l:search_text = ve#cursor#move_front(l:search_text, 1)
+  if (len(l:search_text))
+    if ((l:search_text[0] == "\\") || (l:search_text[0] == "/"))
+      let l:search_text = ve#cursor#move_front(l:search_text, 1)
+    endif
+  endif
+
+  let l:same_search = g:ve_last_search == ve#cursor#remove_cursor(l:search_text)
+  let l:valid_popup = s:IsPopupValid()
+  let l:cache = l:valid_popup && g:ve_cache_search && l:same_search
+  if (!l:cache)
+    call ve#plugin#reset()
+    if (!ve#plugin#search_w(l:search_text, 0))
+      return 0
+    endif
+  endif
+
+  if (l:valid_popup)
+    call popup_show(s:ve_popup)
   else
+    let l:ve_args = #{
+        \ title: 'vim-Everything',
+        \ filter: 've#filter#call',
+        \ callback: 've#callback#call',
+        \ close: 'click',
+      \}
+    let s:ve_popup = popup_menu('', l:ve_args)
   endif
 
-  if (!ve#plugin#search_w(l:search_text, 0))
-    return 0
-  endif
-  
-  let l:ve_args = #{
-  	  \ title:'vim-Everything',
-          \ filter: 've#filter#call',
-          \ callback: 've#callback#call',
-          \ resize: 'g:ve_resize',
-          \ highlight: 'g:ve_style',
-          \ borderchars: g:ve_borders,
-          \ wrap: 0,
-          \ scrollbar: 1,
-          \ close: 'click'
-        \}
+  let l:text = ve#update#screen_text(g:ve_search_txt, 0)
+  call popup_settext(s:ve_popup, l:text)
 
-  if (g:ve_fixed_w)
-    let l:ve_args.minwidth = g:ve_fixed_w
-    let l:ve_args.maxwidth = g:ve_fixed_w
-  endif
+  call ve#plugin#refresh_style()
 
-  let s:ve_popup = popup_menu(ve#update#screen_text(g:ve_search_txt, 0), l:ve_args)
-  if (g:ve_cursor_blink)
+  if (s:IsBlinkEnabled())
     let s:ve_cursor_state = 1
-    let s:ve_timer = timer_start(g:ve_cursor_blink_speed, function('s:Blink'), {'repeat': -1}) 
+    let s:ve_timer = timer_start(g:ve_style.cursor.blink, function('s:Blink'), {'repeat': -1}) 
   endif
 endfunc
 
 func! ve#plugin#close(id) abort
 
-  call popup_close(a:id, [-1, -1])
+  if (s:ve_cache_popup)
+    call popup_hide(a:id)
+  else
+    call popup_close(a:id, [-1, -1])
+  endif
 
-  if (g:ve_cursor_blink && (s:ve_timer > -1))
+  if (s:IsBlinkEnabled() && (s:ve_timer > -1))
     call timer_stop(s:ve_timer)
     let s:ve_timer = -1
   endif
   return 1
 endfunc
 
+func! s:PopupStyle(args) abort
+
+  let l:args = a:args
+
+  let l:args.resize             = g:ve_style.resize
+  let l:args.wrap               = g:ve_style.wrap
+  let l:args.scrollbar          = g:ve_style.scrollbar
+  let l:args.borderchars        = g:ve_style.border
+  let l:args.opacity            = g:ve_style.opacity
+  let l:args.highlight          = g:ve_style.notification
+  let l:args.borderhighlight    = g:ve_style.border_style
+  let l:args.scrollbarhighlight = g:ve_style.scrollbar_style
+  let l:args.thumbhighlight     = g:ve_style.thumb
+
+  if (g:ve_style.window_w)
+    let l:args.minwidth = g:ve_style.window_w
+    let l:args.maxwidth = g:ve_style.window_w
+  endif
+
+  return l:args
+
+endfunc
+
+func! ve#plugin#refresh_style() abort
+  if (s:IsPopupValid())
+    let l:ve_args = s:PopupStyle({})
+    call popup_setoptions(s:ve_popup, l:ve_args)
+  endif
+endfunc
+
 func! s:VEQueryFromPrevSearch(path) abort
 
   if (g:ve_keep_prev_search)
-    let l:last_search = ve#cursor#remove_cursor(g:ve_last_search)
-    let l:file_name   = ve#filter#clear_path_text(l:last_search)
+    let l:file_name = ve#filter#clear_path_text(g:ve_last_search)
     if (l:file_name != g:ve_last_search)
       return ve#cursor#move_after(l:file_name, a:path)
     endif
@@ -216,11 +271,16 @@ func! ve#plugin#refresh(id = 0) abort
   endif
 
   let l:id = a:id
-  if (!l:id)
+  if (l:id <= 0)
     let l:id = s:ve_popup
   endif
 
+  if (l:id <= 0)
+    return 0
+  endif
+
   call popup_settext(l:id, ve#update#screen_text(g:ve_search_txt, 0))
+  return 1
 
 endfunc
 

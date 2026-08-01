@@ -46,7 +46,7 @@ func! ve#update#up(id) abort
 endfunc
 
 func! ve#update#remove_internal_cursor(text, keep_cursor=1) abort
-  return substitute(a:text, g:ve_internal_cursor, a:keep_cursor ? g:ve_cursor : ' ', '')
+  return substitute(a:text, g:ve_internal_cursor, a:keep_cursor ? g:ve_style.cursor.icon : ' ', '')
 endfunc
 
 "These functions update the text in the buffers
