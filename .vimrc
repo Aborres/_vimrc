@@ -16,17 +16,20 @@
 " Restart vim
 
 let s:vim_root     = expand($HOME .. '/.vim')
-let s:plugins_path = s:vim_root .. '/pack/plugin/start'
+let s:plugins_root = s:vim_root .. '/pack/plugin/'
 
 if (has('win64'))
   let s:vim_root     = expand($VIM)
-  let s:plugins_path = expand($VIM . '/' . "pack/plugin/start")
+  let s:plugins_root = expand($VIM . '/' . "pack/plugin/")
 endif
+
+let s:plugins_path          = s:plugins_root .. 'start'
+let s:optional_plugins_path = s:plugins_root .. 'opt'
 
 let s:vimrc_path = s:vim_root .. '/vim-rc'
 
 let s:vim_rc = [
-      \ "git@gitlab.com:Aborres/Vim-rc.git",
+      \ "https://gitlab.com/Aborres/Vim-rc",
       \]
 
 let s:personal_plugins = [
@@ -39,14 +42,21 @@ let s:personal_plugins = [
       \]
 
 let s:external_plugins = [
+      \ "https://github.com/rafi/awesome-vim-colorschemes",
+      \ "https://github.com/itchyny/lightline.vim",
+      \ "https://github.com/sheerun/vim-polyglot",
+      \ "https://github.com/mhinz/vim-startify",
+      \]
+
+let s:vim8_lsp = [
       \ "https://github.com/prabirshrestha/async.vim",
       \ "https://github.com/prabirshrestha/asyncomplete.vim",
       \ "https://github.com/prabirshrestha/asyncomplete-lsp.vim",
-      \ "https://github.com/rafi/awesome-vim-colorschemes",
-      \ "https://github.com/itchyny/lightline.vim",
       \ "https://github.com/prabirshrestha/vim-lsp",
-      \ "https://github.com/sheerun/vim-polyglot",
-      \ "https://github.com/mhinz/vim-startify",
+      \]
+
+let s:vim9_lsp = [
+      \ "https://github.com/yegappan/lsp",
       \]
 
 func! s:OpenTerminal() abort
@@ -67,25 +77,49 @@ func! s:Execute(cmd) abort
 endfunc
 
 func! s:InstallPack(path, pack, to='') abort
+  call s:OpenTerminal()
   for l:plugin in a:pack
     let l:cmd = printf('git -C %s clone %s %s', shellescape(expand(a:path)), shellescape(l:plugin), a:to)
     call s:Execute(l:cmd)
   endfor
 endfunc
 
-func! Install() abort
-
-  call s:OpenTerminal()
-
-  if !isdirectory(s:plugins_path)
-    call mkdir(s:plugins_path, "p")
-  endif
-
+func! InstallVimRC() abort
   call s:InstallPack(s:vim_root, s:vim_rc, s:vimrc_path)
+endfunc
 
-  call s:InstallPack(s:plugins_path, s:personal_plugins)
-  call s:InstallPack(s:plugins_path, s:external_plugins)
+func! s:CheckOpenCreate(path) abort
+  if !isdirectory(a:path)
+    call mkdir(a:path, "p")
+  endif
+endfunc
 
+func! s:InstallPluginPack(path, list) abort
+  call s:CheckCreate(a:path)
+  call s:InstallPack(a:path, a:list)
+endfunc
+
+func! InstallIntPlugins(path) abort
+  call s:InstallPluginPack(a:path, s:personal_plugins)
+endfunc
+
+func! InstallExtPlugins(path) abort
+  call s:InstallPluginPack(a:path, s:external_plugins)
+endfunc
+
+func! InstallLSP(path) abort
+  if (has('vim9script'))
+    call s:InstallPluginPack(a:path, s:vim9_lsp)
+  else
+    call s:InstallPluginPack(a:path, s:vim8_lsp)
+  endif
+endfunc
+
+func! Install() abort
+  call InstallVimRC()
+  call InstallIntPlugins(s:plugins_path)
+  call InstallExtPlugins(s:plugins_path)
+  call InstallLSP(s:optional_plugins_path)
 endfunc
 
 func! s:UpdateRepo(path) abort
