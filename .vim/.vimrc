@@ -1,30 +1,29 @@
 
 " Instructions
 "
-" Windows - Download vim https://www.vim.org/download.php
-"           Rename the vim* version folder to vim
-"           vim's root is in the new vim/ folder
+" Clone with git clone git@github.com:Aborres/_vimrc.git .
 "
-" Mac/Linux - mkdir ~/.vim
-"             vim's root is in ~/.
+" Windows - Download vim https://www.vim.org/download.php
+"         - Clone inside of vim/vim**/ 
+"
+" Mac/Linux - Clone inside of ~
 "
 " Make sure ssh keys for git and gitlab are setup
 "
-" Copy the contents of this repo into vim's root, only windows needs the binaries
-" ./vim
 " call Install()
 " Restart vim
 
-let s:vim_root     = expand($HOME .. '/.vim')
-let s:plugins_root = s:vim_root .. '/pack/plugin/'
+let s:vim_root_f = expand($HOME)
 
 if (has('win64'))
-  let s:vim_root     = expand($VIM)
-  let s:plugins_root = expand($VIM . '/' . "pack/plugin/")
+  let s:vim_root_f = expand($VIM)
 endif
 
-let s:plugins_path          = s:plugins_root .. 'start'
-let s:optional_plugins_path = s:plugins_root .. 'opt'
+let s:vim_root     = s:vim_root_f .. '/.vim'
+let s:plugins_root = s:vim_root_f .. '/pack/plugin'
+
+let s:plugins_path          = s:plugins_root .. '/start'
+let s:optional_plugins_path = s:plugins_root .. '/opt'
 
 let s:vimrc_path = s:vim_root .. '/vim-rc'
 
@@ -88,7 +87,7 @@ func! InstallVimRC() abort
   call s:InstallPack(s:vim_root, s:vim_rc, s:vimrc_path)
 endfunc
 
-func! s:CheckOpenCreate(path) abort
+func! s:CheckCreate(path) abort
   if !isdirectory(a:path)
     call mkdir(a:path, "p")
   endif
@@ -123,8 +122,8 @@ func! Install() abort
 endfunc
 
 func! s:UpdateRepo(path) abort
- if (isdirectory(a:path) && isdirectory(a:path) . '/.git')
-   let l:cmd = 'git -C ' . shellescape(a:path) . ' pull'
+ if (isdirectory(a:path) && isdirectory(a:path) .. '/.git')
+   let l:cmd = 'git -C ' .. shellescape(a:path) .. ' pull'
    call s:Execute(l:cmd)
  endif
 endfunc
