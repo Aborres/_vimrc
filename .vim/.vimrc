@@ -13,14 +13,15 @@
 " call Install()
 " Restart vim
 
-let s:vim_root_f = expand($HOME)
+let s:vim_root_f   = expand($HOME)
+let s:vim_root     = s:vim_root_f .. '/.vim'
+let s:plugins_root = s:vim_root   .. '/pack/plugin'
 
 if (has('win64'))
-  let s:vim_root_f = expand($VIM)
+  let s:vim_root_f   = expand($VIM)
+  let s:vim_root     = s:vim_root_f .. '/.vim'
+  let s:plugins_root = s:vim_root_f .. '/pack/plugin'
 endif
-
-let s:vim_root     = s:vim_root_f .. '/.vim'
-let s:plugins_root = s:vim_root_f .. '/pack/plugin'
 
 let s:plugins_path          = s:plugins_root .. '/start'
 let s:optional_plugins_path = s:plugins_root .. '/opt'
@@ -28,16 +29,16 @@ let s:optional_plugins_path = s:plugins_root .. '/opt'
 let s:vimrc_path = s:vim_root .. '/vim-rc'
 
 let s:vim_rc = [
-      \ "https://gitlab.com/Aborres/Vim-rc",
+      \ "git@gitlab.com:Aborres/Vim-rc.git",
       \]
 
 let s:personal_plugins = [
       \ "https://github.com/Aborres/vim-bates",
       \ "https://github.com/Aborres/vim-blackboard",
-      \ "https://github.com/Aborres/vim-cheater",
       \ "https://github.com/Aborres/vim-everything",
       \ "https://github.com/Aborres/vim-jobs",
-      \ "https://github.com/Aborres/vim-p4",
+      \ "git@github.com:Aborres/vim-cheater.git",
+      \ "git@github.com:Aborres/vim-p4.git",
       \]
 
 let s:external_plugins = [
