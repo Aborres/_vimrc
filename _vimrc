@@ -59,25 +59,54 @@ const s:vim9_lsp = [
       \]
 
 "-----------------------------------------------------------------------------
-" Install
+" Console
 "-----------------------------------------------------------------------------
 
-func! s:OpenTerminal() abort
+let s:term = -1
 
-  for buf in range(1, bufnr('$'))
-    if bufexists(buf) && getbufvar(buf, '&buftype') == 'terminal'
-      return 1
+func! OpenTerminal(silent = 0) abort
+
+  if (s:term != -1)
+    return 0
+  endif
+
+
+  if (!a:silent)
+    execute 'terminal ++curwin'
+    let s:term = bufnr('!')
+  else
+
+    let l:args = #{ term_name: 'vimrc_term' }
+
+    if (a:silent)
+      let l:args.hidden = 1
     endif
-  endfor
 
-  execute "terminal ++curwin"
-  return 0
+    let s:term = term_start("NONE", l:args)
+  endif
+
+  return 1
 
 endfunc
 
 func! s:Execute(cmd) abort
-  call term_sendkeys(bufnr('!'), a:cmd .. "\<CR>")
+  if (s:term > 0)
+    call term_sendkeys(s:term, a:cmd .. "\<CR>")
+  endif
 endfunc
+
+func! CloseTerminal() abort
+  if (bufexists(s:term) && (index(term_list(), s:term) >= 0))
+    let l:job = term_getjob(s:term)
+    call job_stop(l:job, 'kill')
+    silent! execute 'bwipeout! ' . s:term
+  endif
+  let s:term = -1
+endfunc
+
+"-----------------------------------------------------------------------------
+" Install 
+"-----------------------------------------------------------------------------
 
 func! s:InstallPack(path, pack, to='') abort
 
@@ -86,7 +115,7 @@ func! s:InstallPack(path, pack, to='') abort
     return 0
   endif
 
-  call s:OpenTerminal()
+  call OpenTerminal()
   for l:plugin in a:pack
     let l:cmd = printf('git -C %s clone %s %s', shellescape(expand(a:path)), shellescape(l:plugin), a:to)
     call s:Execute(l:cmd)
@@ -131,6 +160,7 @@ func! Vimrc_Install() abort
   call Vimrc_InstallIntPlugins(s:plugins_path)
   call Vimrc_InstallExtPlugins(s:plugins_path)
   call Vimrc_InstallLSP(s:optional_plugins_path)
+  call CloseTerminal()
 endfunc
 
 "-----------------------------------------------------------------------------
@@ -154,13 +184,14 @@ func! s:UpdatePack(pack) abort
 
 endfunc
 
-func! Vimrc_UpdatePlugins() abort
+func! Vimrc_UpdatePlugins(silent = 0) abort
 
-  call s:OpenTerminal()
+  let l:terminal = OpenTerminal(a:silent)
 
   call s:UpdateRepo(s:vimrc_path)
   call s:UpdatePack(s:plugins_path)
 
+  call CloseTerminal()
 endfunc
 
 "-----------------------------------------------------------------------------
